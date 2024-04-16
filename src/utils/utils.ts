@@ -1,3 +1,5 @@
+import { CDN_URL } from './constants';
+
 export function pascalToKebab(value: string): string {
     return value.replace(/([a-z0–9])([A-Z])/g, "$1-$2").toLowerCase();
 }
@@ -132,4 +134,8 @@ export function createElement<
         }
     }
     return element;
+}
+
+export function setImage(element: HTMLImageElement, src: string) {
+    element.src = CDN_URL + src;
 }
