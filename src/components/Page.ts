@@ -1,4 +1,5 @@
 import { ensureElement } from '../utils/utils';
+import { IEvents } from './base/events';
 
 export class Page {
 	protected _productCards: HTMLDivElement;
@@ -6,12 +7,13 @@ export class Page {
 	protected _basketButton: HTMLButtonElement;
 	protected _basketCounter: HTMLSpanElement;
 
-	constructor(protected rootElement: HTMLElement) {
+	constructor(protected rootElement: HTMLElement, protected events: IEvents) {
 		this._productCards = ensureElement<HTMLDivElement>('.gallery', this.rootElement);
 		this._pageWrapper = ensureElement<HTMLDivElement>('.page__wrapper', this.rootElement);
 		this._basketButton = ensureElement<HTMLButtonElement>('.header__basket', this.rootElement);
 		this._basketCounter = ensureElement<HTMLSpanElement>('.header__basket-counter', this.rootElement);
 
+		this._basketButton.addEventListener('click', () => { events.emit('basket:open')});
 	}
 
 	set productCards(elements : HTMLElement[]) {

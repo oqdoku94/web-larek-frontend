@@ -2,8 +2,6 @@ import { BaseModel } from '../components/base/BaseModel';
 import { BaseComponent } from '../components/base/BaseComponent';
 import { IEvents } from '../components/base/events';
 import { ensureElement, setImage } from '../utils/utils';
-import { Api } from '../components/base/api';
-import { Store } from '../components/Store';
 
 /* start models */
 
@@ -153,7 +151,6 @@ export class PageCardView extends ImagedCardView<IPageCard> {
 }
 
 export class ModalCardView extends ImagedCardView<IModalCard> {
-	protected price: number;
 	protected descriptionElement: HTMLParagraphElement;
 	protected buttonElement: HTMLButtonElement;
 
@@ -168,12 +165,12 @@ export class ModalCardView extends ImagedCardView<IModalCard> {
 		if (isInBasket) {
 			this.buttonElement.textContent = 'Удалить';
 			this.buttonElement.addEventListener('click', () => {
-					this.events.emit('basket:remove', { id: this.id, price: this.price });
+					this.events.emit('basket:remove', { id: this.id });
 			});
 		} else {
 			this.buttonElement.textContent = 'В корзину';
 			this.buttonElement.addEventListener('click', () => {
-				this.events.emit('basket:add', { id: this.id, price: this.price });
+				this.events.emit('basket:add', { id: this.id });
 			});
 		}
 	}
@@ -182,7 +179,6 @@ export class ModalCardView extends ImagedCardView<IModalCard> {
 		super.render(obj);
 
 		this.descriptionElement.textContent = obj.description;
-		this.price = obj.price;
 		this.setIsInBasketState(obj.isInBasket);
 
 		return this.container;

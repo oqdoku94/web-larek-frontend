@@ -17,7 +17,7 @@ const modalElement = ensureElement<HTMLDivElement>('#modal-container', rootEleme
 const events: IEvents = new EventEmitter();
 const store: Store = new Store(events);
 
-const page: Page = new Page(rootElement);
+const page: Page = new Page(rootElement, events);
 const modal: Modal = new Modal(modalElement, events);
 
 const api: IShopApi = new ShopApi(API_URL);
@@ -63,14 +63,19 @@ events.on('modal:close', page.unlock.bind(page));
 events.on('modal:open', page.lock.bind(page));
 
 events.on('basket:changed', (basket: IBasket) => page.basketCounter = basket.items.size);
-events.on('basket:add', (data: { id: string, price: number }) => {
-	console.log('add');
-	store.addProductToBasket(data.id, data.price);
+events.on('basket:add', (data: { id: string }) => {
+	console.log('basket:add');
+	const product = store.getProductById(data.id);
+	store.addProductToBasket(product.id, product.price);
 	modal.close();
 });
 
 events.on('basket:remove', (data: { id: string }) => {
-	console.log('remove');
+	console.log('basket:remove');
 	store.removeProductFromBasket(data.id);
 	modal.close();
+});
+
+events.on('basket:open', () => {
+	console.log('basket:open');
 });

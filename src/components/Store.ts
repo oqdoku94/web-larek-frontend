@@ -28,6 +28,15 @@ export class Store {
 		return this._products;
 	}
 
+	getProductById(id: string): ProductModel {
+		const product = this.products.find((item) => item.id === id);
+
+		if (!product)
+			throw Error(`Product with id ${id} not found`);
+
+		return product;
+	}
+
 	set basket(basket: IBasket) {
 		this._basket = basket;
 		this.events.emit('basket:changed', this.basket);
