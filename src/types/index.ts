@@ -209,7 +209,7 @@ export class BasketView extends BaseComponent<IBasketCardList>{
 	protected submitButton: HTMLButtonElement;
 	protected priceElement: HTMLSpanElement;
 
-	constructor(protected container: HTMLElement, protected events: IEvents, protected basketCardTemplate: HTMLTemplateElement) {
+	constructor(protected container: HTMLElement, protected events: IEvents, protected basketCardTemplate: HTMLTemplateElement, protected basketCardViewConstructor: IBasketCardViewConstructor) {
 		super(container, events);
 
 		this.basketCardListElement = ensureElement<HTMLUListElement>('.basket__list', this.container);
@@ -231,13 +231,17 @@ export class BasketView extends BaseComponent<IBasketCardList>{
 		this.setPrice(obj.total);
 		this.basketCardListElement.replaceChildren(...obj.items
 			.map(cardItem =>
-				new BasketCardView(cloneTemplate(this.basketCardTemplate), this.events)
+				new this.basketCardViewConstructor(cloneTemplate(this.basketCardTemplate), this.events)
 					.render(cardItem)))
 		return this.container;
 	}
 }
 
-class BasketCardView extends CardView<IBasketCard> {
+interface IBasketCardViewConstructor {
+	new(container: HTMLElement, events: IEvents): CardView<IBasketCard>;
+}
+
+export class BasketCardView extends CardView<IBasketCard> {
 	private itemIndexElement: HTMLSpanElement;
 	protected removeButtonElement: HTMLButtonElement;
 

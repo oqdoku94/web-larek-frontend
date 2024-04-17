@@ -1,5 +1,6 @@
 import './scss/styles.scss';
 import {
+	BasketCardView,
 	BasketView, ContactsView,
 	IBasket,
 	IBasketOrder, IOrder,
@@ -54,7 +55,7 @@ function renderCards() {
 }
 
 function renderBasket() {
-	return new BasketView(cloneTemplate(basketTemplate), events, basketCardTemplate).render({
+	return new BasketView(cloneTemplate(basketTemplate), events, basketCardTemplate, BasketCardView).render({
 		items: Array.from(store.basket.items.keys()).map(item => store.getProductById(item)).map((product, index) => {
 			return {
 				id: product.id,
