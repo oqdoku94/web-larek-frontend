@@ -1,17 +1,18 @@
-import { IBasket, IUserInfo, ProductModel } from '../types';
+import { IBasket, IBasketContacts, IBasketOrder, IPay, ProductModel } from '../types';
 import { IEvents } from './base/events';
 
-export class Store {
+export class Storage {
 	protected _basket: IBasket;
 	protected _products: ProductModel[];
-	protected userInfo: IUserInfo;
+	protected _basketOrder: IBasketOrder;
+	protected _basketContacts: IBasketContacts;
 
 	constructor(protected events: IEvents) {
+		this.clearBasket();
+		this.clearBasketOrder();
 
-		this.basket = {
-			items: new Map<string, number>,
-			total: 0,
-		};
+		events.on('basketOrder:changed', (data : IBasketOrder) => this._basketOrder = data);
+		events.on('basketContacts:changed', (data : IBasketContacts) => this._basketContacts = data);
 	}
 
 	set products(items: ProductModel[]) {
@@ -37,13 +38,20 @@ export class Store {
 		return product;
 	}
 
-	set basket(basket: IBasket) {
+	protected set basket(basket: IBasket) {
 		this._basket = basket;
 		this.events.emit('basket:changed', this.basket);
 	}
 
 	get basket(): IBasket {
 		return this._basket;
+	}
+
+	clearBasket() {
+		this.basket = {
+			items: new Map<string, number>,
+			total: 0,
+		};
 	}
 
 	addProductToBasket(productId: string, price: number): void {
@@ -61,14 +69,36 @@ export class Store {
 		if (!this.isInBasket(productId))
 			return;
 
+		const lastPrice = this.basket.items.get(productId);
 		this.basket.items.delete(productId);
 		this.basket = {
 			items: this.basket.items,
-			total: this.basket.total - this.basket.items.get(productId),
+			total: this.basket.total - lastPrice,
 		};
 	}
 
 	isInBasket(productId: string): boolean {
 		return this.basket.items.has(productId);
+	}
+
+	get basketOrder() {
+		return this._basketOrder;
+	}
+
+	clearBasketOrder() {
+		this._basketOrder = {
+			address: '', payment: undefined,
+		};
+	}
+
+	clearBasketContacts() {
+		this._basketContacts = {
+			email: '',
+			phone: ''
+		}
+	}
+
+	get basketContacts() {
+		return this._basketContacts;
 	}
 }
