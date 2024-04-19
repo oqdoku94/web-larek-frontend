@@ -14,6 +14,6 @@ export class ShopApi extends Api implements IShopApi {
 	}
 
 	async getProductById(id: string): Promise<IProduct> {
-		return this.get(`/product/${id}`)
+		return this.get(`/product/${id}`);
 	}
 }

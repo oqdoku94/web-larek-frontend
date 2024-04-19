@@ -14,7 +14,7 @@ export class Modal extends BaseComponent<HTMLElement> {
 
 		this.container.addEventListener('click', this.close.bind(this));
 		this.closeButton.addEventListener('click', this.close.bind(this));
-		this.innerContent.addEventListener('click', (evt) => { evt.stopPropagation(); });
+		this.innerContent.addEventListener('click', (evt) => evt.stopPropagation());
 	}
 
 	close() {

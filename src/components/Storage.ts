@@ -1,35 +1,28 @@
-import { IBasket, IBasketContacts, IBasketOrder, IPay, ProductModel } from '../types';
+import { IBasket, IBasketContacts, IBasketOrder, IOrder, IProduct } from '../types';
 import { IEvents } from './base/events';
 
 export class Storage {
 	protected _basket: IBasket;
-	protected _products: ProductModel[];
-	protected _basketOrder: IBasketOrder;
-	protected _basketContacts: IBasketContacts;
+	protected _products: IProduct[];
+	protected _order: IBasketOrder;
+	protected _contacts: IBasketContacts;
 
 	constructor(protected events: IEvents) {
 		this.clearBasket();
-		this.clearBasketOrder();
-
-		events.on('basketOrder:changed', (data : IBasketOrder) => this._basketOrder = data);
-		events.on('basketContacts:changed', (data : IBasketContacts) => this._basketContacts = data);
+		this.clearOrder();
+		this.clearContacts();
 	}
 
-	set products(items: ProductModel[]) {
-		this._products = items.sort((a, b) => {
-			if (a.id < b.id)
-				return -1;
-
-			return a.id > b.id ? 1 : -1;
-		});
-		this.events.emit('product:changed');
+	set products(items: IProduct[]) {
+		this._products = items;
+		this.events.emit('products:changed', this.products);
 	}
 
-	get products(): ProductModel[] {
+	get products(): IProduct[] {
 		return this._products;
 	}
 
-	getProductById(id: string): ProductModel {
+	getProductById(id: string): IProduct {
 		const product = this.products.find((item) => item.id === id);
 
 		if (!product)
@@ -49,19 +42,31 @@ export class Storage {
 
 	clearBasket() {
 		this.basket = {
-			items: new Map<string, number>,
+			items: [],
 			total: 0,
 		};
 	}
 
-	addProductToBasket(productId: string, price: number): void {
-		if (this.isInBasket(productId))
+	clearOrder() {
+		this._order = {
+			address: '', payment: undefined,
+		};
+	}
+
+	clearContacts() {
+		this.contacts = {
+			email: '',
+			phone: '',
+		};
+	}
+
+	addProductToBasket(product: IProduct): void {
+		if (this.isInBasket(product.id))
 			return;
 
-		this.basket.items.set(productId, price);
 		this.basket = {
-			items: this.basket.items,
-			total: this.basket.total + this.basket.items.get(productId),
+			items: [...this.basket.items, product.id],
+			total: this.basket.total + product.price ?? 0,
 		};
 	}
 
@@ -69,36 +74,48 @@ export class Storage {
 		if (!this.isInBasket(productId))
 			return;
 
-		const lastPrice = this.basket.items.get(productId);
-		this.basket.items.delete(productId);
+		const product = this.getProductById(productId);
+
 		this.basket = {
-			items: this.basket.items,
-			total: this.basket.total - lastPrice,
+			items: this.basket.items.filter(item => item !== product.id),
+			total: this.basket.total - product.price ?? 0,
 		};
+	}
+
+	getProductsInBasket(): IProduct[] {
+		return this.products.filter((item) => this.isInBasket(item.id));
 	}
 
 	isInBasket(productId: string): boolean {
-		return this.basket.items.has(productId);
+		return this.basket.items.includes(productId);
 	}
 
-	get basketOrder() {
-		return this._basketOrder;
+	set order(basketOrder: IBasketOrder) {
+		this._order = basketOrder;
 	}
 
-	clearBasketOrder() {
-		this._basketOrder = {
-			address: '', payment: undefined,
+	get order() {
+		return this._order;
+	}
+
+	set contacts(value: IBasketContacts) {
+		this._contacts = value;
+	}
+
+	get contacts() {
+		return this._contacts;
+	}
+
+	getCurrentOrder(): IOrder {
+		const items = this.basket.items.filter((id) => this.getProductById(id).price > 0);
+
+		return {
+			address: this.order.address,
+			email: this.contacts.email,
+			items: items,
+			payment: this.order.payment,
+			phone: this.contacts.phone,
+			total: this.basket.total,
 		};
-	}
-
-	clearBasketContacts() {
-		this._basketContacts = {
-			email: '',
-			phone: ''
-		}
-	}
-
-	get basketContacts() {
-		return this._basketContacts;
 	}
 }

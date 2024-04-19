@@ -13,10 +13,10 @@ export class Page {
 		this._basketButton = ensureElement<HTMLButtonElement>('.header__basket', this.rootElement);
 		this._basketCounter = ensureElement<HTMLSpanElement>('.header__basket-counter', this.rootElement);
 
-		this._basketButton.addEventListener('click', () => { events.emit('basket:open')});
+		this._basketButton.addEventListener('click', () => events.emit('basket:open'));
 	}
 
-	set productCards(elements : HTMLElement[]) {
+	set productCards(elements: HTMLElement[]) {
 		this._productCards.replaceChildren(...elements);
 	}
 

@@ -1,8 +1,11 @@
 import { IEvents } from './events';
-import { IView } from '../../types';
 
-export abstract class BaseComponent<T> implements IView<T>{
-	protected constructor(protected container: HTMLElement, protected events: IEvents) { }
+export abstract class BaseComponent<T> {
+	protected constructor(protected container: HTMLElement, protected events: IEvents) {
+	}
 
-	abstract render(obj: T): HTMLElement;
+	render(obj: Partial<T>): HTMLElement {
+		Object.assign(this, obj);
+		return this.container;
+	}
 }

@@ -1,25 +1,26 @@
 import './scss/styles.scss';
 import {
-	BasketCardView,
-	BasketView, ContactsView,
 	IBasket,
-	IBasketOrder, IOrder,
+	IBasketContacts,
+	IBasketOrder,
+	IProduct,
 	IShopApi,
-	ModalCardView,
-	OrderView,
-	PageCardView,
-	ProductModel,
 } from './types';
 import { ShopApi } from './components/ShopApi';
-import { EventEmitter, IEvents } from './components/base/events';
+import { EventEmitter } from './components/base/events';
 import { Storage } from './components/Storage';
 import { API_URL } from './utils/constants';
 import { cloneTemplate, ensureElement } from './utils/utils';
 import { Page } from './components/Page';
 import { Modal } from './components/Modal';
+import { Card } from './components/Card';
+import { Basket } from './components/Basket';
+import { Order } from './components/Order';
+import { Contacts } from './components/Contacts';
+import { Success } from './components/Success';
 
 const rootElement = ensureElement<HTMLDivElement>('.page');
-const events: IEvents = new EventEmitter();
+const events = new EventEmitter();
 const page: Page = new Page(rootElement, events);
 
 const productCardTemplate = ensureElement<HTMLTemplateElement>('#card-catalog', rootElement);
@@ -28,123 +29,115 @@ const basketTemplate = ensureElement<HTMLTemplateElement>('#basket', rootElement
 const basketCardTemplate = ensureElement<HTMLTemplateElement>('#card-basket', rootElement);
 const basketOrderTemplate = ensureElement<HTMLTemplateElement>('#order', rootElement);
 const basketContactsTemplate = ensureElement<HTMLTemplateElement>('#contacts', rootElement);
+const successTemplate = ensureElement<HTMLTemplateElement>('#success', rootElement);
 
 const modalElement = ensureElement<HTMLDivElement>('#modal-container', rootElement);
 
 
-const store: Storage = new Storage(events);
+const storage: Storage = new Storage(events);
 const api: IShopApi = new ShopApi(API_URL);
 const modal: Modal = new Modal(modalElement, events);
 
 api.getAllProducts().then(data => {
-	store.products = data.map(product => new ProductModel(product, events));
-	renderCards();
+	storage.products = data;
 });
 
+function renderCards(products: IProduct[]) {
+	page.productCards = products.map(product => new Card(productCardTemplate, events, {
+		onClick: () => events.emit('preview:selected', product),
+	}).render({
+		id: product.id,
+		category: product.category,
+		title: product.title,
+		image: product.image,
+		price: product.price,
+	}));
+}
 
-function renderCards() {
-	page.productCards = store.products
-		.map(product => new PageCardView(cloneTemplate(productCardTemplate), events)
-			.render({
-				category: product.category,
-				id: product.id,
-				image: product.image,
-				priceText: product.priceText,
-				title: product.title,
-			}));
+function renderPreview(product: IProduct) {
+	modal.render(new Card(previewCardTemplate, events, {
+		onClick: () => events.emit('preview:submit', product),
+	})
+		.render({
+			id: product.id,
+			category: product.category,
+			title: product.title,
+			image: product.image,
+			price: product.price,
+			description: product.description,
+			isInBasket: storage.isInBasket(product.id),
+		}));
 }
 
 function renderBasket() {
-	return new BasketView(cloneTemplate(basketTemplate), events, basketCardTemplate, BasketCardView).render({
-		items: Array.from(store.basket.items.keys()).map(item => store.getProductById(item)).map((product, index) => {
-			return {
-				id: product.id,
-				title: product.title,
-				priceText: product.priceText,
-				order: ++index,
-			};
-		}),
-		total: store.basket.total,
-	});
+	modal.render(new Basket(basketTemplate, events)
+		.setPrice(storage.basket.total)
+		.render(storage.getProductsInBasket()
+			.map((product: IProduct, index: number) => new Card(basketCardTemplate, events, {
+				onClick: () => events.emit('basket:remove', product),
+			})
+				.render({
+					id: product.id,
+					title: product.title,
+					price: product.price,
+					index: index,
+				}))));
 }
 
-events.on('product:changed', renderCards);
-events.on('product:selected', (data: { id: string }) => {
-	api.getProductById(data.id).then(product => {
-		const newProductModel = new ProductModel(product, events);
-		store.products = [...store.products.filter(product => product.id !== data.id), newProductModel];
-		modal.render(new ModalCardView(cloneTemplate(previewCardTemplate), events).render({
-			category: newProductModel.category,
-			id: newProductModel.id,
-			image: newProductModel.image,
-			priceText: newProductModel.priceText,
-			title: newProductModel.title,
-			description: newProductModel.description,
-			price: newProductModel.price ?? 0,
-			isInBasket: store.isInBasket(newProductModel.id),
-		}));
-		modal.open();
-	});
-});
-
 events.on('modal:close', page.unlock.bind(page));
+
 events.on('modal:open', page.lock.bind(page));
 
-events.on('basket:changed', (basket: IBasket) => page.basketCounter = basket.items.size);
-events.on('basket:add', (data: { id: string }) => {
-	console.log('basket:add');
-	const product = store.getProductById(data.id);
-	store.addProductToBasket(product.id, product.price);
+events.on('products:changed', (products: IProduct[]) => {
+	renderCards(products);
 });
 
-events.on('basket:remove', (data: { id: string }) => {
-	console.log('basket:remove');
-	store.removeProductFromBasket(data.id);
-});
-
-events.on('basket:open', () => {
-	console.log('basket:open');
-	modal.render(renderBasket());
+events.on('preview:selected', (product: IProduct) => {
+	renderPreview(product);
 	modal.open();
 });
 
-events.on('modal:basket:changed', () => {
-	console.log('modal:basket:changed');
-	modal.render(renderBasket());
+events.on('preview:submit', (product: IProduct) => {
+	if (storage.isInBasket(product.id)) {
+		storage.removeProductFromBasket(product.id);
+		renderPreview(product);
+	} else {
+		storage.addProductToBasket(product);
+		renderPreview(product);
+	}
 });
 
-events.on('modal:basket:submit', () => {
-	store.clearBasketOrder();
-	const basketOrderView = new OrderView(cloneTemplate(basketOrderTemplate), events);
-	modal.render(basketOrderView.render(store.basketOrder));
+events.on('basket:changed', (basket: IBasket) => page.basketCounter = basket.items.length);
+
+events.on('basket:open', () => {
+	renderBasket();
+	modal.open();
 });
 
-events.on('modal:basketOrder:submit', () => {
-	console.log('modal:basketOrder:submit');
-	store.clearBasketContacts();
-	const basketContactsView = new ContactsView(cloneTemplate(basketContactsTemplate), events);
-	modal.render(basketContactsView.render(store.basketContacts));
+events.on('basket:remove', (product: IProduct) => {
+	storage.removeProductFromBasket(product.id);
+	renderBasket();
 });
 
-events.on('modal:basketContacts:submit', () => {
-	console.log('modal:basketContacts:submit');
-	const order: IOrder = {
-		address: store.basketOrder.address,
-		email: store.basketContacts.email,
-		items: Array.from(store.basket.items).filter(keyValuePair => keyValuePair[1]).map(keyValuePair => keyValuePair[0]),
-		payment: store.basketOrder.payment,
-		phone: store.basketContacts.phone,
-		total: store.basket.total,
-	};
-	console.log(order);
-	api.addOrder(order).then(data => {
-		console.log(`Создан заказ '${data.id}' на сумму '${data.total}'.`);
-		store.clearBasket();
-		store.clearBasketOrder();
-		store.clearBasketContacts();
+events.on('basket:submit', () => {
+	storage.clearOrder();
+	modal.render(new Order(cloneTemplate(basketOrderTemplate), events).render(storage.order));
+});
 
-		modal.close();
-	})
-		.catch(err => console.log(err));
-})
-	;;
+events.on('order:submit', (data: IBasketOrder) => {
+	storage.order = data;
+	storage.clearContacts();
+	modal.render(new Contacts(cloneTemplate(basketContactsTemplate), events).render(storage.contacts));
+});
+
+events.on('contacts:submit', (data: IBasketContacts) => {
+	storage.contacts = data;
+	api.addOrder(storage.getCurrentOrder()).then(result => {
+		storage.clearOrder();
+		storage.clearContacts();
+		storage.clearBasket();
+		modal.render(new Success(successTemplate, events).render(result));
+	}).catch(e => console.error(e));
+});
+
+events.on('success:submit', modal.close.bind(modal));
