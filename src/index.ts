@@ -1,6 +1,5 @@
 import './scss/styles.scss';
 import {
-	IBasket,
 	IBasketContacts,
 	IBasketOrder,
 	IProduct,
@@ -32,7 +31,10 @@ const basketContactsTemplate = ensureElement<HTMLTemplateElement>('#contacts', r
 const successTemplate = ensureElement<HTMLTemplateElement>('#success', rootElement);
 
 const modalElement = ensureElement<HTMLDivElement>('#modal-container', rootElement);
-
+const basketElement = new Basket(basketTemplate, events);
+const orderElement = new Order(cloneTemplate(basketOrderTemplate), events);
+const contactsElement = new Contacts(cloneTemplate(basketContactsTemplate), events);
+const successElement = new Success(successTemplate, events);
 
 const storage: Storage = new Storage(events);
 const api: IShopApi = new ShopApi(API_URL);
@@ -70,18 +72,20 @@ function renderPreview(product: IProduct) {
 }
 
 function renderBasket() {
-	modal.render(new Basket(basketTemplate, events)
-		.setPrice(storage.basket.total)
-		.render(storage.getProductsInBasket()
-			.map((product: IProduct, index: number) => new Card(basketCardTemplate, events, {
-				onClick: () => events.emit('basket:remove', product),
-			})
-				.render({
-					id: product.id,
-					title: product.title,
-					price: product.price,
-					index: index,
-				}))));
+	modal.render(basketElement
+		.render({
+			price: storage.getBasketTotalPrice(),
+			cards: storage.getProductsInBasket()
+				.map((product: IProduct, index: number) => new Card(basketCardTemplate, events, {
+					onClick: () => events.emit('basket:remove', product),
+				})
+					.render({
+						id: product.id,
+						title: product.title,
+						price: product.price,
+						index: index + 1,
+					})),
+		}));
 }
 
 events.on('modal:close', page.unlock.bind(page));
@@ -107,7 +111,7 @@ events.on('preview:submit', (product: IProduct) => {
 	}
 });
 
-events.on('basket:changed', (basket: IBasket) => page.basketCounter = basket.items.length);
+events.on('basket:changed', (basket: string[]) => page.basketCounter = basket.length);
 
 events.on('basket:open', () => {
 	renderBasket();
@@ -121,13 +125,13 @@ events.on('basket:remove', (product: IProduct) => {
 
 events.on('basket:submit', () => {
 	storage.clearOrder();
-	modal.render(new Order(cloneTemplate(basketOrderTemplate), events).render(storage.order));
+	modal.render(orderElement.render(storage.order));
 });
 
 events.on('order:submit', (data: IBasketOrder) => {
 	storage.order = data;
 	storage.clearContacts();
-	modal.render(new Contacts(cloneTemplate(basketContactsTemplate), events).render(storage.contacts));
+	modal.render(contactsElement.render(storage.contacts));
 });
 
 events.on('contacts:submit', (data: IBasketContacts) => {
@@ -136,7 +140,7 @@ events.on('contacts:submit', (data: IBasketContacts) => {
 		storage.clearOrder();
 		storage.clearContacts();
 		storage.clearBasket();
-		modal.render(new Success(successTemplate, events).render(result));
+		modal.render(successElement.render(result));
 	}).catch(e => console.error(e));
 });
 

@@ -1,8 +1,9 @@
 import { BaseComponent } from './base/BaseComponent';
 import { IEvents } from './base/events';
 import { cloneTemplate, ensureElement } from '../utils/utils';
+import { IBasket } from '../types';
 
-export class Basket extends BaseComponent<HTMLElement[]> {
+export class Basket extends BaseComponent<IBasket> {
 	protected basketCardListElement: HTMLUListElement;
 	protected submitButton: HTMLButtonElement;
 	protected priceElement: HTMLSpanElement;
@@ -17,17 +18,12 @@ export class Basket extends BaseComponent<HTMLElement[]> {
 		this.submitButton.addEventListener('click', () => events.emit('basket:submit'));
 	}
 
-	setPrice(price: number): Basket {
+	set price(price: number) {
 		this.priceElement.textContent = String(price) + ' синапсов';
-
-		if (price <= 0)
-			this.submitButton.disabled = true;
-
-		return this;
+		this.submitButton.disabled = price <= 0;
 	}
 
-	render(obj: HTMLElement[]): HTMLElement {
-		this.basketCardListElement.replaceChildren(...obj);
-		return this.container;
+	set cards(elements: HTMLElement[]) {
+		this.basketCardListElement.replaceChildren(...elements);
 	}
 }

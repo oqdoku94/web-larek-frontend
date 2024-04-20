@@ -1,8 +1,8 @@
-import { IBasket, IBasketContacts, IBasketOrder, IOrder, IProduct } from '../types';
+import { IBasketContacts, IBasketOrder, IOrder, IProduct } from '../types';
 import { IEvents } from './base/events';
 
 export class Storage {
-	protected _basket: IBasket;
+	protected _basket: string[];
 	protected _products: IProduct[];
 	protected _order: IBasketOrder;
 	protected _contacts: IBasketContacts;
@@ -31,20 +31,17 @@ export class Storage {
 		return product;
 	}
 
-	protected set basket(basket: IBasket) {
+	protected set basket(basket: string[]) {
 		this._basket = basket;
 		this.events.emit('basket:changed', this.basket);
 	}
 
-	get basket(): IBasket {
+	get basket(): string[] {
 		return this._basket;
 	}
 
 	clearBasket() {
-		this.basket = {
-			items: [],
-			total: 0,
-		};
+		this.basket = [];
 	}
 
 	clearOrder() {
@@ -64,10 +61,7 @@ export class Storage {
 		if (this.isInBasket(product.id))
 			return;
 
-		this.basket = {
-			items: [...this.basket.items, product.id],
-			total: this.basket.total + product.price ?? 0,
-		};
+		this.basket = [...this.basket, product.id];
 	}
 
 	removeProductFromBasket(productId: string): void {
@@ -75,11 +69,7 @@ export class Storage {
 			return;
 
 		const product = this.getProductById(productId);
-
-		this.basket = {
-			items: this.basket.items.filter(item => item !== product.id),
-			total: this.basket.total - product.price ?? 0,
-		};
+		this.basket = this.basket.filter(item => item !== product.id)
 	}
 
 	getProductsInBasket(): IProduct[] {
@@ -87,7 +77,7 @@ export class Storage {
 	}
 
 	isInBasket(productId: string): boolean {
-		return this.basket.items.includes(productId);
+		return this.basket.includes(productId);
 	}
 
 	set order(basketOrder: IBasketOrder) {
@@ -107,7 +97,7 @@ export class Storage {
 	}
 
 	getCurrentOrder(): IOrder {
-		const items = this.basket.items.filter((id) => this.getProductById(id).price > 0);
+		const items = this.basket.filter((id) => this.getProductById(id).price > 0);
 
 		return {
 			address: this.order.address,
@@ -115,7 +105,11 @@ export class Storage {
 			items: items,
 			payment: this.order.payment,
 			phone: this.contacts.phone,
-			total: this.basket.total,
+			total: this.getBasketTotalPrice(),
 		};
+	}
+
+	getBasketTotalPrice(): number {
+		return this.basket.reduce((result, current) => result + this.getProductById(current).price ?? 0, 0);
 	}
 }

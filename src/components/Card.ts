@@ -80,4 +80,8 @@ export class Card extends BaseComponent<ICard> {
 	set isInBasket(state: boolean) {
 		this.buttonElement.textContent = state ? 'Удалить' : 'Добавить';
 	}
+
+	set index(index: number) {
+		this.itemIndexElement.textContent = String(index);
+	}
 }

@@ -17,11 +17,6 @@ export interface IProduct {
 	price?: number;
 }
 
-export interface IBasket {
-	items: string[];
-	total: number;
-}
-
 export interface IBasketOrder {
 	payment: IPay;
 	address: string;
@@ -59,5 +54,10 @@ export interface ICard {
 
 export interface ICardAction {
 	onClick: (event: MouseEvent) => void;
+}
+
+export interface IBasket {
+	price: number;
+	cards: HTMLElement[];
 }
 
