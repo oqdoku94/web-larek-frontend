@@ -55,6 +55,9 @@ export class Card extends BaseComponent<ICard> {
 			case 'хард-скил':
 				this.categoryElement.classList.add('card__category_hard');
 				break;
+			default:
+				this.categoryElement.classList.add('card__category_other');
+				break;
 		}
 	}
 
